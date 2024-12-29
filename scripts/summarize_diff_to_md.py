@@ -2,7 +2,9 @@ import subprocess
 import os
 import datetime
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
 
