@@ -1,16 +1,20 @@
 import subprocess
 import os
-import datetime
+import datetime 
 import requests
-import json
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
 
+def get_diff_text():
+    """최근 커밋과 직전 커밋 간 diff 텍스트를 가져온다."""
+    diff = subprocess.check_output(["git", "diff", "HEAD^", "HEAD"])
+    return diff.decode("utf-8")
+
 def chunk_diff(diff_text, max_tokens=3000):
     """대용량 diff를 파일 단위로 분리"""
     files = {}
-    current_file = None
+    current_file = None 
     current_content = []
     
     for line in diff_text.split('\n'):
@@ -21,16 +25,11 @@ def chunk_diff(diff_text, max_tokens=3000):
             current_content = [line]
         else:
             current_content.append(line)
-    
+            
     if current_file:
         files[current_file] = '\n'.join(current_content)
-    
+        
     return files
-
-def get_diff_text():
-    """최근 커밋과 직전 커밋 간 diff 텍스트를 가져온다."""
-    diff = subprocess.check_output(["git", "diff", "HEAD^", "HEAD"])
-    return diff.decode("utf-8")
 
 def summarize_diff(diff_text):
     """DeepSeek API를 사용해 diff 내용을 요약"""
@@ -40,21 +39,30 @@ def summarize_diff(diff_text):
     }
     
     payload = {
-        "model": "deepseek-coder-33b-instruct",
+        "model": "deepseek-chat-1.1",
         "messages": [
-            {"role": "system", "content": "You are a helpful assistant that summarizes code diffs."},
-            {"role": "user", "content": f"Please summarize the following diff:\n{diff_text}"}
+            {
+                "role": "system", 
+                "content": "You are a helpful assistant that summarizes code changes."
+            },
+            {
+                "role": "user",
+                "content": f"Please summarize these code changes:\n\n{diff_text}"
+            }
         ],
-        "temperature": 0.2,
-        "max_tokens": 1000
+        "max_tokens": 1000,
+        "temperature": 0.3
     }
     
     try:
         response = requests.post(API_URL, headers=headers, json=payload)
+        print(f"API Response Status: {response.status_code}")
+        print(f"API Response: {response.text}")
+        
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"Error in summarize_diff: {str(e)}")
+        print(f"Error details: {str(e)}")
         return f"Failed to summarize diff: {str(e)}"
 
 def summarize_large_diff(diff_text):
@@ -97,13 +105,13 @@ def main():
     if not diff_text.strip():
         print("No diff found between HEAD^ and HEAD.")
         return
-    
+        
     # 큰 변경사항은 파일별로 분리하여 요약
     if len(diff_text) > 3000:
         summary = summarize_large_diff(diff_text)
     else:
         summary = summarize_diff(diff_text)
-    
+        
     print("=== Summary ===")
     print(summary)
     
