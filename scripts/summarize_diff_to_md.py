@@ -4,7 +4,7 @@ import datetime
 import requests
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-API_URL = "https://api.deepseek.com/v1/chat/completions"
+API_URL = "https://api.deepseek.com/chat/completions"
 
 def get_diff_text():
     """최근 커밋과 직전 커밋 간 diff 텍스트를 가져온다."""
@@ -14,7 +14,7 @@ def get_diff_text():
 def chunk_diff(diff_text, max_tokens=3000):
     """대용량 diff를 파일 단위로 분리"""
     files = {}
-    current_file = None 
+    current_file = None
     current_content = []
     
     for line in diff_text.split('\n'):
@@ -39,7 +39,7 @@ def summarize_diff(diff_text):
     }
     
     payload = {
-        "model": "deepseek-chat-1.1",
+        "model": "deepseek-chat",
         "messages": [
             {
                 "role": "system", 
@@ -50,8 +50,7 @@ def summarize_diff(diff_text):
                 "content": f"Please summarize these code changes:\n\n{diff_text}"
             }
         ],
-        "max_tokens": 1000,
-        "temperature": 0.3
+        "stream": False
     }
     
     try:
